@@ -1,0 +1,109 @@
+loadstring(game:HttpGetAsync("https://pastebin.com/raw/6TW7RGz3"))()
+
+local player = game:GetService("Players").LocalPlayer
+local heartbeat = game:GetService("RunService").Heartbeat
+local remotes = game:GetService("ReplicatedStorage").RemoteEvents
+local btn, run
+local current_array_index = 1
+
+local gui = library:AddWindow("Project XL | Auto Farm (HamstaGang)", {
+    main_color = Color3.fromRGB(69, 69, 69), -- ( ͡° ͜ʖ ͡°)
+    min_size = Vector2.new(370, 310),
+    can_resize = false
+})
+
+local all_array = { -- For our all switch
+   "Bandits",
+   "Rahgan's Overseers",
+   "Agni's Overseers",
+   "Lars' Minion",
+   "Agni's Minions",
+   "Rahgan's Minions"
+}
+
+local array = {
+   ["Bandits"] = "Defeat 10 Bandits",
+   ["Rahgan's Overseers"] = "Defeat 4 of Rahgan's Overseers",
+   ["Agni's Overseers"] = "Defeat 6 of Agni's Overseers",
+   ["Lars' Minion"] = "Defeat 8 of Lars' Minions",
+   ["Agni's Minions"] = "Defeat 9 of Agni's Minions",
+   ["Rahgan's Minions"] = "Defeat 7 of Rahgan's Minions"
+
+}
+
+local tab = gui:AddTab("Main")
+
+tab:AddLabel("NPC")
+local drop = tab:AddDropdown("Select", function(opt) array.target = opt array.quest = opt array.all = false end)
+for i,v in next, array do drop:Add(i) end
+
+local switch = tab:AddSwitch("All", function(opt) array.target = "ALL" array.quest = "ALL" array.all = opt end)
+
+tab:AddLabel("Weapon")
+local drop2 = tab:AddDropdown("Select", function(opt) array.weap = opt end)
+
+repeat wait() until player.Backpack:FindFirstChildWhichIsA("BackpackItem") -- Wait for tools
+
+for i,v in next, player.Backpack:children() do
+    if v.ClassName == "Tool" then
+        drop2:Add(v)
+    end
+end
+
+btn = tab:AddButton("Start", function()
+    if not array.farm then
+        run = game:GetService("RunService").Stepped:connect(function()
+            pcall(function() player.Character.Humanoid:ChangeState(11) end)
+            pcall(function() game:GetService("Players").LocalPlayer.Head.Overhead.Player:Destroy() end)
+        end)
+        array.farm = true btn.Text = "Stop"
+    else
+        array.farm = false btn.Text = "Start"
+        run:Disconnect()
+    end
+end)
+
+library:FormatWindows()
+tab:Show()
+
+player.Idled:connect(function()
+    game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+end)
+
+coroutine.wrap(function()
+    while wait() do
+        if array.farm and not game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("Menu"):WaitForChild("QuestFrame").Visible then
+            pcall(function()
+                game:GetService("ReplicatedStorage").RemoteEvents.ChangeQuestRemote:FireServer(game:GetService("ReplicatedStorage").Quests[array[array.quest]])
+            end)
+        end
+    end
+end)()
+
+while wait() do
+    if array.farm then
+        if array.target == "ALL" or array.all then array.target = all_array[current_array_index] array.quest = all_array[current_array_index] end
+        spawn(function() pcall(function() player.Character.Humanoid:EquipTool(player.Backpack:WaitForChild(array.weap, 0.3)) end) end)
+        for i,x in pairs(game:GetService("Workspace").Live[array.target]:GetDescendants()) do
+            if player.Character:FindFirstChild("Humanoid").Health <= 0 then -- ded
+                wait(8) -- Give time to respawn
+                break;
+            end
+            if x.Name == "Humanoid" then
+                if x.Health > 0 then
+                    while x ~= nil and x.Health > 0 and array.farm and player.Character:FindFirstChild("Humanoid").Health > 0 do
+                        repeat wait() until player.Character:FindFirstChildWhichIsA("BackpackItem")
+                        setsimulationradius(math.huge,math.huge)
+                        player.Character:WaitForChild("HumanoidRootPart", 15).CFrame = (x.Parent.HumanoidRootPart.CFrame * CFrame.new(0,-7,0)) * CFrame.Angles(80,0,0)
+                        wait(0.3)
+                        game:GetService("ReplicatedStorage").RemoteEvents.BladeCombatRemote:FireServer(true, nil, nil)
+                        wait(0.3)
+                        x.Health = 0
+                        heartbeat:wait()
+                    end
+                end
+            end
+        end
+        if current_array_index == 5 then current_array_index = 1; else current_array_index = current_array_index+1; end
+    end
+end
